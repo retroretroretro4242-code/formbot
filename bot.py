@@ -2,8 +2,9 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import random
+import os
 
-TOKEN = "BOT_TOKENIN_BURAYA"
+TOKEN = os.getenv("TOKEN")  # veya direkt token yaz
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -19,105 +20,89 @@ YETKILI_ROLLER = [
     1425485552504799342
 ]
 
-class HileModal(discord.ui.Modal, title="Hile Paylaşım Formu"):
-    isim = discord.ui.TextInput(label="Hile İsmi", max_length=100)
-    surum = discord.ui.TextInput(label="Hile Sürümü", max_length=50)
-    aciklama = discord.ui.TextInput(label="Açıklama", style=discord.TextStyle.paragraph, max_length=500)
-    foto = discord.ui.TextInput(label="Hile Foto Linki", placeholder="https://", max_length=200)
-    link = discord.ui.TextInput(label="Hile Linki", placeholder="https://", max_length=200)
+# ✅ Plugin Modal
+class PluginModal(discord.ui.Modal, title="Plugin Paylaşım Formu"):
+    isim = discord.ui.TextInput(label="Plugin İsmi", max_length=100)
+    surum = discord.ui.TextInput(label="Sürüm", max_length=50)
+    aciklama = discord.ui.TextInput(label="Açıklama", style=discord.TextStyle.paragraph)
+    link = discord.ui.TextInput(label="İndirme Linki", placeholder="https://")
+
     async def on_submit(self, interaction: discord.Interaction):
-        embed = discord.Embed(title="🧪 Hile Paylaşımı | URUS", color=0xe74c3c)
-        embed.add_field(name="Hile İsmi", value=self.isim.value, inline=False)
+        embed = discord.Embed(title="🔧 Plugin Paylaşımı", color=0x2ecc71)
+        embed.add_field(name="İsim", value=self.isim.value, inline=False)
         embed.add_field(name="Sürüm", value=self.surum.value, inline=False)
         embed.add_field(name="Açıklama", value=self.aciklama.value, inline=False)
         embed.add_field(name="Link", value=self.link.value, inline=False)
-        embed.set_image(url=self.foto.value)
         await interaction.response.send_message(embed=embed)
 
+# ✅ Pack Modal
 class PackModal(discord.ui.Modal, title="Pack Paylaşım Formu"):
-    isim = discord.ui.TextInput(label="Pack İsmi", max_length=100)
-    surum = discord.ui.TextInput(label="Pack Sürümü", max_length=50)
-    foto = discord.ui.TextInput(label="Pack Foto Linki", placeholder="https://", max_length=200)
-    link = discord.ui.TextInput(label="Pack Linki", placeholder="https://", max_length=200)
+    isim = discord.ui.TextInput(label="Pack İsmi")
+    surum = discord.ui.TextInput(label="Sürüm")
+    link = discord.ui.TextInput(label="Link", placeholder="https://")
+
     async def on_submit(self, interaction: discord.Interaction):
-        embed = discord.Embed(title="📦 Pack Paylaşımı | URUS", color=0x3498db)
-        embed.add_field(name="Pack İsmi", value=self.isim.value, inline=False)
+        embed = discord.Embed(title="📦 Pack Paylaşımı", color=0x3498db)
+        embed.add_field(name="İsim", value=self.isim.value, inline=False)
         embed.add_field(name="Sürüm", value=self.surum.value, inline=False)
         embed.add_field(name="Link", value=self.link.value, inline=False)
-        embed.set_image(url=self.foto.value)
         await interaction.response.send_message(embed=embed)
+
+# ✅ Sunucu Modal
+class SunucuModal(discord.ui.Modal, title="Sunucu Tanıtım Formu"):
+    isim = discord.ui.TextInput(label="Sunucu İsmi")
+    ip = discord.ui.TextInput(label="IP Adresi")
+    aciklama = discord.ui.TextInput(label="Açıklama", style=discord.TextStyle.paragraph)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        embed = discord.Embed(title="🌐 Sunucu Tanıtımı", color=0xf1c40f)
+        embed.add_field(name="İsim", value=self.isim.value, inline=False)
+        embed.add_field(name="IP", value=self.ip.value, inline=False)
+        embed.add_field(name="Açıklama", value=self.aciklama.value, inline=False)
+        await interaction.response.send_message(embed=embed)
+
+# ✅ Discord Bot Modal
+class BotModal(discord.ui.Modal, title="Discord Bot Paylaşımı"):
+    isim = discord.ui.TextInput(label="Bot İsmi")
+    ozellik = discord.ui.TextInput(label="Özellikler", style=discord.TextStyle.paragraph)
+    link = discord.ui.TextInput(label="Davet / GitHub Linki", placeholder="https://")
+
+    async def on_submit(self, interaction: discord.Interaction):
+        embed = discord.Embed(title="🤖 Discord Bot Tanıtımı", color=0x9b59b6)
+        embed.add_field(name="İsim", value=self.isim.value, inline=False)
+        embed.add_field(name="Özellikler", value=self.ozellik.value, inline=False)
+        embed.add_field(name="Link", value=self.link.value, inline=False)
+        await interaction.response.send_message(embed=embed)
+
+def kullanici_yetkili():
+    async def predicate(interaction: discord.Interaction):
+        return any(role.id in YETKILI_ROLLER for role in interaction.user.roles)
+    return app_commands.check(predicate)
 
 @bot.event
 async def on_ready():
     await bot.tree.sync()
     print(f"Bot hazır: {bot.user}")
 
-@bot.event
-async def on_member_join(member):
-    channel = discord.utils.get(member.guild.text_channels, name="giris-cikis")
-    if channel:
-        await channel.send(f"👋 Hoş geldin {member.mention}! | URUS Üye sayısı: {member.guild.member_count}")
+# ✅ Slash komutlar
+@bot.tree.command(name="pluginpaylas")
+@kullanici_yetkili()
+async def pluginpaylas(interaction: discord.Interaction):
+    await interaction.response.send_modal(PluginModal())
 
-@bot.event
-async def on_member_remove(member):
-    channel = discord.utils.get(member.guild.text_channels, name="giris-cikis")
-    if channel:
-        await channel.send(f"👋 {member.name} ayrıldı | URUS Üye sayısı: {member.guild.member_count}")
-
-BAD_WORDS = ["küfür1","küfür2"]
-
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-    if len(message.content) > 6 and message.content.isupper():
-        await message.delete()
-        await message.channel.send(f"{message.author.mention} CAPS LOCK kapalı pls 😄", delete_after=5)
-    for word in BAD_WORDS:
-        if word in message.content.lower():
-            await message.delete()
-            await message.channel.send(f"{message.author.mention} küfür yasak ❌", delete_after=5)
-    await bot.process_commands(message)
-
-def kullanici_yetkili(mi):
-    def predicate(interaction: discord.Interaction):
-        return any(role.id in YETKILI_ROLLER for role in interaction.user.roles)
-    return app_commands.check(predicate)
-
-@bot.tree.command(name="hilepaylas", description="Hile paylaşım formu açar")
-@kullanici_yetkili(True)
-async def hilepaylas(interaction: discord.Interaction):
-    await interaction.response.send_modal(HileModal())
-
-@bot.tree.command(name="packpaylas", description="Pack paylaşım formu açar")
-@kullanici_yetkili(True)
+@bot.tree.command(name="packpaylas")
+@kullanici_yetkili()
 async def packpaylas(interaction: discord.Interaction):
     await interaction.response.send_modal(PackModal())
 
-@bot.tree.command(name="sec", description="Rastgele seçim yapar")
-@app_commands.describe(secenekler="Virgülle ayır")
-async def sec(interaction: discord.Interaction, secenekler: str):
-    secenek_list = [s.strip() for s in secenekler.split(",") if s.strip()]
-    if not secenek_list:
-        await interaction.response.send_message("En az bir seçenek yaz.")
-        return
-    await interaction.response.send_message(f"🎯 Seçilen: **{random.choice(secenek_list)}**")
+@bot.tree.command(name="sunucupaylas")
+@kullanici_yetkili()
+async def sunucupaylas(interaction: discord.Interaction):
+    await interaction.response.send_modal(SunucuModal())
 
-@bot.tree.command(name="cekilis", description="Çekiliş başlatır")
-@app_commands.describe(odul="Çekiliş ödülü")
-async def cekilis(interaction: discord.Interaction, odul: str):
-    await interaction.response.send_message(f"🎉 ÇEKİLİŞ BAŞLADI! Ödül: **{odul}** 🎉")
-
-@bot.tree.command(name="eglence", description="Rastgele eğlence mesajı")
-async def eglence(interaction: discord.Interaction):
-    sozler = ["Bugün şanslı günün 😎","Bir blok daha kır 💎","Admin seni izliyor 👀"]
-    await interaction.response.send_message(random.choice(sozler))
-
-@hilepaylas.error
-@packpaylas.error
-async def modal_yetki_hatasi(interaction: discord.Interaction, error):
-    from discord import app_commands
-    if isinstance(error, app_commands.errors.CheckFailure):
-        await interaction.response.send_message("Bu komutu kullanmak için yetkiniz yok ❌", ephemeral=True)
+@bot.tree.command(name="botpaylas")
+@kullanici_yetkili()
+async def botpaylas(interaction: discord.Interaction):
+    await interaction.response.send_modal(BotModal())
 
 bot.run(TOKEN)
